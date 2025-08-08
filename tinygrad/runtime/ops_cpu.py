@@ -60,7 +60,8 @@ class CPUComputeQueue(HWQueue):
 MAP_JIT = 0x0800
 
 class CPUProgram(HCQProgram):
-  rt_lib = ctypes.CDLL('libc.so')
+  try: rt_lib = ctypes.CDLL('libc.so')
+  except OSError: rt_lib = ctypes.CDLL(ctypes.util.find_library('System' if sys.platform == 'darwin' else 'kernel32') if sys.platform in ('darwin', 'win32') else (ctypes.util.find_library('c') or 'libgcc_s.so.1'))
 
   def __init__(self, dev, name:str, lib:bytes):
     if sys.platform == "win32":
@@ -85,7 +86,9 @@ class CPUProgram(HCQProgram):
       # libgcc_s comes as shared library but compiler-rt is only a bunch of static library archives which we can't directly load, but fortunately
       # it somehow found its way into libSystem on macos (likely because it used __builtin_clear_cache) and libgcc_s is ~always present on linux
       # Using ["name"] instead of .name because otherwise name is getting mangled: https://docs.python.org/3.12/reference/expressions.html#index-5
-      CPUProgram.rt_lib["__clear_cache"](ctypes.c_void_p(mv_address(self.mem)), ctypes.c_void_p(mv_address(self.mem) + len(lib)))
+      _clear_cache = getattr(CPUProgram.rt_lib, "__clear_cache", None)
+      if _clear_cache is not None:
+          _clear_cache(ctypes.c_void_p(mv_address(self.mem)), ctypes.c_void_p(mv_address(self.mem) + len(lib)))
 
       self.fxn = ctypes.CFUNCTYPE(None)(mv_address(self.mem))
 
