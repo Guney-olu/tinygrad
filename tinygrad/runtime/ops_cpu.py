@@ -60,7 +60,7 @@ class CPUComputeQueue(HWQueue):
 MAP_JIT = 0x0800
 
 class CPUProgram(HCQProgram):
-  rt_lib = ctypes.CDLL(ctypes.util.find_library('System' if OSX else 'kernel32') if OSX or sys.platform == "win32" else 'libgcc_s.so.1')
+  rt_lib = ctypes.CDLL('libc.so')
 
   def __init__(self, dev, name:str, lib:bytes):
     if sys.platform == "win32":
